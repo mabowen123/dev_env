@@ -1,0 +1,131 @@
+version: '3.7'
+
+services:
+  mysql:
+    build: mysql
+    image: lnmp/mysql
+    platform: linux/amd64
+    container_name: mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    env_file: ./.mysql.env
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '5g'
+    volumes:
+      - ${PWD}/mysql/conf/:/etc/mysql/:ro
+      - ${PWD}/mysql/data/:/var/lib/mysql/:rw
+      - ${PWD}/mysql/files/:/var/lib/mysql-files/:rw
+      - ${PWD}/mysql/log/:/var/log/mysql/:rw
+    ports:
+      - ${MYSQL_PORT}:3306
+
+  redis:
+    build: redis
+    image: lnmp/redis
+    container_name: redis
+    command: redis-server /etc/redis/redis.conf
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '1g'
+    volumes:
+      - ${PWD}/redis/conf/redis.${APP_ENV}.conf:/etc/redis/redis.conf:ro
+      - ${PWD}/redis/data/:/data/:rw
+    ports:
+      - ${REDIS_PORT}:6379
+
+  mongo:
+    build: mongo
+    image: lnmp/mongo
+    container_name: mongo
+    command: mongod
+    env_file: ./.mongo.env
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '1g'
+    volumes:
+      - ${PWD}/mongo/config/mongod.${APP_ENV}.conf:/etc/mongod.conf:ro
+      - ${PWD}/mongo/configdb:/data/configdb:rw
+      - ${PWD}/mongo/db:/data/db:rw
+    ports:
+      - ${MONGO_PORT}:27017
+
+  php:
+    build:
+      context: ${PWD}/php
+      args:
+        java: ${JAVA}
+        xdebug: ${XDEBUG}
+        hprose: ${HPROSE}
+    image: lnmp/php
+    container_name: php
+    links:
+      - mysql:mysql
+      - redis:redis
+      - mongo:mongo
+    restart: always
+    command: php-fpm
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10g'
+    volumes:
+      - ${HTML_PATH}:/workspace/html/:rw
+      - ${LOG_PATH}:/data/log/service:rw
+      - ${PWD}/php/conf/php-fpm.conf:/usr/local/etc/php-fpm.conf:ro
+      - ${PWD}/php/conf/php.${APP_ENV}.ini:/usr/local/etc/php/php.ini:ro
+      - ${PWD}/php/log/:/var/log/php-fpm/:rw
+      - ${PWD}/php/php-fpm.d/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+      - ${PWD}/php/supervisor/conf/:/etc/supervisor/:ro
+      - ${PWD}/php/supervisor/log/:/var/log/supervisor/:rw
+    ports:
+      - ${PHP_PORT}:9000
+
+  php72:
+    build:
+      context: ${PWD}/php7.2
+    image: lnmp/php72
+    container_name: php72
+    links:
+      - mysql:mysql
+      - redis:redis
+      - mongo:mongo
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10g'
+    volumes:
+      - ${HTML_PATH}:/workspace/html/:rw
+      - ${PWD}/php7.2/conf/php-fpm.conf:/usr/local/etc/php-fpm.conf:ro
+      - ${PWD}/php7.2/conf/php.${APP_ENV}.ini:/usr/local/etc/php/php.ini:ro
+      - ${PWD}/php7.2/log/:/var/log/php-fpm/:rw
+      - ${PWD}/php7.2/php-fpm.d/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+      - ${PWD}/php7.2/supervisor/conf/:/etc/supervisor/:ro
+      - ${PWD}/php7.2/supervisor/log/:/var/log/supervisor/:rw
+    ports:
+      - 9009:9009
+
+  nginx:
+    build: nginx
+    image: lnmp/nginx
+    container_name: nginx
+    depends_on:
+      - php
+    links:
+      - php:php
+    restart: always
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10g'
+    volumes:
+      - ${HTML_PATH}:/workspace/html/:rw
+      - ${PWD}/nginx/conf/nginx.${APP_ENV}.conf:/etc/nginx/nginx.conf:ro
+      - ${PWD}/nginx/conf.d:/etc/nginx/conf.d/:ro
+      - ${PWD}/nginx/log:/var/log/nginx/:rw
+    ports:
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT}:443
+      - 8080:8080
