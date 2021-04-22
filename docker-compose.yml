@@ -114,8 +114,10 @@ services:
     container_name: nginx
     depends_on:
       - php
+      - php72
     links:
       - php:php
+      - php72:php72
     restart: always
     logging:
       driver: 'json-file'
