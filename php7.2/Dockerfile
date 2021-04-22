@@ -40,7 +40,6 @@ RUN apt-get update && apt-get install -y \
   && docker-php-ext-install mysqli \
   && pecl channel-update pecl.php.net \
   && pecl install mongodb \
-  && pecl install o \
   && docker-php-ext-enable mongodb redis swoole hprose \
   && export EDITOR=vim
 
