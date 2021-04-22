@@ -35,11 +35,12 @@ RUN apt-get update && apt-get install -y \
   && docker-php-ext-install zip \
   && docker-php-ext-install pdo_mysql \
   && docker-php-ext-install opcache \
-  && pecl install swoole  \
-  && pecl install hprose \
   && docker-php-ext-install mysqli \
   && pecl channel-update pecl.php.net \
+  && pecl install swoole  \
+  && pecl install hprose \
   && pecl install mongodb \
+  && pecl install redis-3.1.6 \
   && docker-php-ext-enable mongodb redis swoole hprose \
   && export EDITOR=vim
 
