@@ -105,7 +105,8 @@ services:
       - ${PWD}/php7.2/supervisor/conf/:/etc/supervisor/:ro
       - ${PWD}/php7.2/supervisor/log/:/var/log/supervisor/:rw
     ports:
-      - 9009:9009
+      - ${PHP72_PROT}:9000
+      - ${PHP72_PROT_2}:9009
 
   nginx:
     build: nginx
